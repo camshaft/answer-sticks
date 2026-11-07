@@ -1,0 +1,22 @@
+name: Source SHA-256 (temporary)
+
+# Prints the SHA-256 and the size of a data sheet that docs/sources/README.md lists, for its line there.
+# This branch removes the file before its pull request.
+on:
+  push:
+    branches: [sources-piezo-buzzer]
+
+permissions:
+  contents: read
+
+jobs:
+  hash:
+    name: Hash the piezo buzzer data sheet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the data sheet and print its SHA-256 and size
+        run: |
+          curl -fsSL -o ps-series.pdf https://cdn-shop.adafruit.com/product-files/160/160_ds.pdf
+          sha256sum ps-series.pdf
+          wc -c ps-series.pdf
+          if command -v pdftotext >/dev/null; then pdftotext ps-series.pdf - | grep -m 3 -E 'piezoelectronic_buzzer_ps_en|February 2022'; fi
