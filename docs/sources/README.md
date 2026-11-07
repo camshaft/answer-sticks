@@ -1,0 +1,39 @@
+# Sources
+
+The manuals and data sheets the design relies on. A source whose license lets it be copied is a file in this directory. Each other source is listed below with its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read, so that a later reader can check that the file at the URL is still the one the design cites.
+
+## Host LCD: the 20x4 module and its controller
+
+### Newhaven Display NHD-0420H1Z-FL-GBW-33V3
+
+- Title: NHD-0420H1Z-FL-GBW-33V3, Character Liquid Crystal Display Module
+- Publisher: Newhaven Display International, Inc.
+- URL: https://newhavendisplay.com/content/specs/NHD-0420H1Z-FL-GBW-33V3.pdf
+- Revision: 2, dated 7/20/16 in the data sheet's revision history; 12 pages
+- Read on 2026-11-07: 448760 bytes, Last-Modified Tue, 08 Feb 2022 19:52:27 +0000
+- SHA-256: `e61718d6fc33226052691711599065889744175f92379f2a3bdc1a62cbf347a5`
+- Not copied here: its mechanical drawing says it "shall not be copied, reproduced, and/or disclosed in any format without permission".
+- What it is: the 4x20 LCD module the host uses, rated for a 3.3 V supply, with the ST7066U controller and a 16-pin header at 2.54 mm pitch.
+- Where to buy: Newhaven Display, https://newhavendisplay.com/4x20-character-lcd-stn-gray-display-h1z-with-yellow-green-backlight-3v/ (US$17.10, in stock on 2026-11-07). Its outline is 79 mm x 36 mm x 13 mm.
+
+### Sitronix ST7066U
+
+- Title: ST7066U, Dot Matrix LCD Controller/Driver
+- Publisher: Sitronix; the file is Newhaven Display's copy, which the module's data sheet links to
+- URL: https://newhavendisplay.com/content/app_notes/ST7066U.pdf
+- Revision: V2.2, 2006/05/11; 42 pages
+- Read on 2026-11-07: 618877 bytes, Last-Modified Thu, 10 Feb 2022 15:01:22 +0000
+- SHA-256: `3038a0579b41ca8567c1e9e254ebbe4ef7b6313df2dfd6e26fe98cf3c858311d`
+- Not copied here: the data sheet doesn't give a license to copy it.
+- What it is: the controller the module uses, compatible with the HD44780.
+
+### Hitachi HD44780U (LCD-II)
+
+- Title: HD44780U (LCD-II) (Dot Matrix Liquid Crystal Display Controller/Driver)
+- Publisher: Hitachi, Ltd.; the file is SparkFun Electronics' copy
+- URL: https://cdn.sparkfun.com/assets/9/5/f/7/b/HD44780.pdf (https://www.sparkfun.com/datasheets/LCD/HD44780.pdf redirects there)
+- Revision: ADE-207-272(Z), '99.9, Rev. 0.0; 60 pages
+- Read on 2026-11-07: 329795 bytes, Last-Modified Wed, 04 Dec 2024 20:18:20 GMT
+- SHA-256: `4324d67ec14fc8e7ba8cf7db7256749c9b80b94b3f8bedfa614a0d2839c7dea9`
+- Not copied here: its Cautions, item 6, say "No one is permitted to reproduce or duplicate, in any form, the whole or part of this document without written approval from Hitachi."
+- What it is: the controller whose instruction set the ST7066U and the hd44780 library follow.
