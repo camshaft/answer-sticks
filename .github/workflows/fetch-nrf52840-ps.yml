@@ -1,8 +1,13 @@
 name: Fetch the nRF52840 Product Specification
 
-# A temporary workflow: it runs on pushes to this branch alone, downloads the newest revision of
-# the specification that Nordic's documentation site serves, and prints its SHA-256 and its text,
+# A temporary workflow: it runs on pushes to this branch alone, downloads revision 1.11 of the
+# specification as Nordic's documentation site served it, and prints its SHA-256 and its text,
 # each line after its page number. The branch removes it before its pull request merges.
+#
+# Nordic's site answers automated reads with a Cloudflare challenge, so the file comes from the
+# Internet Archive's capture of Nordic's own URL, in its raw form (the id_ flag), and the step
+# checks the file's SHA-1 against the digest the Archive's index lists for every capture of that
+# URL from 2025-02-07 to 2025-10-10.
 on:
   push:
     branches: [nrf52840-ps-source]
@@ -17,44 +22,14 @@ jobs:
     steps:
       - name: Install poppler-utils
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
-      - name: Show what the documentation site answers
+      - name: Download revision 1.11 as Nordic's documentation site served it
         run: |
-          agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-          for url in \
-            'https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus' \
-            'https://docs.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus' \
-            'https://docs.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html' \
-            'https://docs-be.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html?_LANG=enus'; do
-            echo "=== $url"
-            curl -sS -A "$agent" -e 'https://docs.nordicsemi.com/' -H 'Accept: text/html,application/pdf,*/*' \
-              -D - -o body.bin "$url" || true
-            echo "--- first bytes"
-            head -c 600 body.bin | tr -c '[:print:]\n' '.' || true
-            echo
-          done
-      - name: Download the newest revision Nordic serves
-        run: |
-          agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-          found=''
-          for v in 1.15 1.14 1.13 1.12 1.11 1.10 1.9 1.8 1.7; do
-            for base in https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach https://docs.nordicsemi.com/bundle/ps_nrf52840/attach; do
-              url="$base/nRF52840_PS_v$v.pdf?_LANG=enus"
-              rm -f candidate.pdf
-              result=$(curl -sSL -A "$agent" -e 'https://docs.nordicsemi.com/' -o candidate.pdf -w '%{http_code} %{content_type} %{url_effective}' "$url" || true)
-              magic=$(head -c 4 candidate.pdf 2>/dev/null || true)
-              echo "try $url -> $result magic=$magic"
-              if [ "$magic" = "%PDF" ]; then
-                mv candidate.pdf ps.pdf
-                found="$url"
-                break 2
-              fi
-            done
-          done
-          if [ -z "$found" ]; then
-            echo "Nordic's site didn't serve a PDF at any URL tried"
-            exit 1
-          fi
-          echo "found $found"
+          nordic='https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus'
+          curl -fsSL -o ps.pdf "https://web.archive.org/web/20250825153625id_/$nordic"
+          echo "magic: $(head -c 5 ps.pdf)"
+          digest=$(python3 -c "import base64, hashlib; print(base64.b32encode(hashlib.sha1(open('ps.pdf', 'rb').read()).digest()).decode())")
+          echo "SHA-1 in base32: $digest"
+          test "$digest" = 57POWQZB6QHXZOI2RWLGZFE3KOCAVCMO
           sha256sum ps.pdf
           ls -l ps.pdf
           pdfinfo ps.pdf
