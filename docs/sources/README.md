@@ -63,7 +63,7 @@ None of these three data sheets lets itself be copied, so each is listed by its 
 
 ## Host LCD: the I2C backpack and its library
 
-The host drives the LCD through a PCF8574 I2C backpack, with the hd44780 library's `hd44780_I2Cexp` class. None of the five documents below lets itself be copied or states a license, so each is listed by its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read. The library is listed by its tag and commit.
+The host drives the LCD through a PCF8574 I2C backpack, with the hd44780 library's `hd44780_I2Cexp` class. None of the six documents below lets itself be copied or states a license, so each is listed by its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read. The library is listed by its tag and commit.
 
 ### Texas Instruments PCF8574
 
@@ -108,6 +108,17 @@ The host drives the LCD through a PCF8574 I2C backpack, with the hd44780 library
 - SHA-256: `64fb10abd5b00f69a1d73480d83eab2b2a15ca8f862da8c0e45bde4d3a481d85`
 - Not copied here: it doesn't state a license.
 - What it is: a third party's drawing of the common backpack, since no maker of the backpack publishes one. Most of it is an image; its text names the PCF8574's pins, the contrast adjustment, the LED jumper and the S8050 backlight transistor, and marks two parts "May be 10K" ohms.
+
+### DX's I2C LCD Adapter schematic
+
+- Title: I2C LCD Adapter (the PDF's title field says "I2C LCD Adapter.sch")
+- Publisher: the sellers its title block names, http://www.dx.com and the AliExpress store http://www.aliexpress.com/store/1199788, with "Design: Jack" and "Check: Fred.Chu"; the file is Harm van de Ven's copy in his GitHub repository HvandeVen/PCF8574-Display
+- URL: https://github.com/HvandeVen/PCF8574-Display/blob/1d7f042e7e9446e03674d77e764c2493853ed786/I2C%20LCD%20Adapter%20Schematic.pdf
+- Revision: dated 2016.07.02 in its title block; drawn in EAGLE 6.1.0; 1 page, created 2016-07-28; the repository's commit 1d7f042e7e9446e03674d77e764c2493853ed786 of 2018-07-01 added it, and no later commit changes it
+- Read on 2026-11-07: 17296 bytes. Its labels are drawn as lines, not as text, so they were read by eye from a 1600 dpi rendering of the page.
+- SHA-256: `4be1344ba400917878787f50a86fbdb09d399b17b24780e424ad18f7d86f0bef`
+- Not copied here: it doesn't state a license.
+- What it is: a seller's schematic of a PCF8574 LCD backpack. Two resistors labeled 4.7k connect SCL (the PCF8574's pin 14) and SDA (pin 15) to the VCC net, which is the PCF8574's supply (pin 16) and pin 2 of the four-pin header J1. A third 4.7k resistor drawn beside them isn't connected. The board it draws differs from the one the documents above and below describe: it ties A0 to A2 to GND, where Handsontec's guide says they are pulled up to VDD, and its backlight transistor is an S9013, where the mikrocontroller.net drawing has an S8050.
 
 ### Handsontec I2C Serial Interface 1602 LCD Module
 
