@@ -61,6 +61,75 @@ None of these three data sheets lets itself be copied, so each is listed by its 
 - Not copied here: its Cautions, item 6, say "No one is permitted to reproduce or duplicate, in any form, the whole or part of this document without written approval from Hitachi."
 - What it is: the controller whose instruction set the ST7066U and the hd44780 library follow.
 
+## Host LCD: the I2C backpack and its library
+
+The host drives the LCD through a PCF8574 I2C backpack, with the hd44780 library's `hd44780_I2Cexp` class. None of the five documents below lets itself be copied or states a license, so each is listed by its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read. The library is listed by its tag and commit.
+
+### Texas Instruments PCF8574
+
+- Title: PCF8574 Remote 8-Bit I/O Expander for I2C Bus
+- Publisher: Texas Instruments
+- URL: https://www.ti.com/lit/ds/symlink/pcf8574.pdf
+- Revision: SCPS068K, July 2001, revised September 2024; 39 pages
+- Read on 2026-11-07: 2613289 bytes, Last-Modified Thu, 05 Nov 2026 06:34:36 GMT
+- SHA-256: `f62ec6e9e3c749de3d5b41509ea00250382b3e666513b04868f5638eaeea4e72`
+- Not copied here: its notice says "Other reproduction and display of these resources is prohibited".
+- What it is: the I/O expander on the backpack, with its supply range (section 5.3), its I2C clock limit (5.6) and its addresses (7.3.3).
+
+### Texas Instruments PCF8574A
+
+- Title: PCF8574A Remote 8-Bit I/O Expander for I2C Bus
+- Publisher: Texas Instruments
+- URL: https://www.ti.com/lit/ds/symlink/pcf8574a.pdf
+- Revision: SCPS069H, July 2001, revised September 2024; 36 pages
+- Read on 2026-11-07: 2546661 bytes, Last-Modified Thu, 05 Nov 2026 06:33:27 GMT
+- SHA-256: `d21abac204a76945c122b5a89c089a7f32d248724c0393c5a218f96c999fdb16`
+- Not copied here: SCPS068K's notice, which covers TI's resources, prohibits other reproduction of them.
+- What it is: the A part, which some backpacks carry in place of the PCF8574, with its supply range (page 4) and its I2C clock limit (page 5).
+
+### NXP PCF8574; PCF8574A
+
+- Title: PCF8574; PCF8574A Remote 8-bit I/O expander for I2C-bus with interrupt
+- Publisher: NXP Semiconductors
+- URL: https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf
+- Revision: Product data sheet Rev. 5, 27 May 2013; 33 pages
+- Read on 2026-11-07: 913144 bytes, from the Internet Archive's capture of that URL of 2024-12-29, https://web.archive.org/web/20241229203815id_/https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf, whose original Last-Modified is Wed, 19 Apr 2023 21:55:32 GMT. NXP's URL answered HTTP 404 to a script's read from a GitHub Actions runner.
+- SHA-256: `15873fa13e8b9e3baeb924cc5ce845eabf0e1d2671a441feaaa3c4bb56e77013`
+- Not copied here: it says "All rights reserved".
+- What it is: the data sheet of both parts, with their address maps (Tables 4 and 5), their supply range (Table 9) and their I2C clock limit (Table 10).
+
+### PCF8574 I2C LCD1602 adapter board schematic
+
+- Title: PCF8574 I2C LCD1602 Adapter board, I2C LCD adapter schematic
+- Publisher: "Hanako" (the PDF's author field says "Yuki"), posted on mikrocontroller.net as attachment 521754
+- URL: https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
+- Revision: dated 2021.3.16 in its title block; 1 page, created 2021-03-31
+- Read on 2026-11-07: 721344 bytes, from the Internet Archive's capture of that URL of 2024-11-02, https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf. The URL answered HTTP 403 to a script's read.
+- SHA-256: `64fb10abd5b00f69a1d73480d83eab2b2a15ca8f862da8c0e45bde4d3a481d85`
+- Not copied here: it doesn't state a license.
+- What it is: a third party's drawing of the common backpack, since no maker of the backpack publishes one. Most of it is an image; its text names the PCF8574's pins, the contrast adjustment, the LED jumper and the S8050 backlight transistor, and marks two parts "May be 10K" ohms.
+
+### Handsontec I2C Serial Interface 1602 LCD Module
+
+- Title: I2C Serial Interface 1602 LCD Module, User Guide
+- Publisher: Handsontec
+- URL: https://www.handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
+- Revision: SKU DSP-1182; the guide doesn't state a revision; 8 pages, created 2018-08-05
+- Read on 2026-11-07: 900672 bytes, Last-Modified Mon, 06 Aug 2018 00:00:49 GMT
+- SHA-256: `8045603417887006e39c2240a261ffbaeb175d3f7189359dd253f6c41ca4cda8`
+- Not copied here: it doesn't state a license.
+- What it is: a seller's guide to the same backpack, with its addresses and supply (page 1), its address pads (page 2) and a pin map for the LiquidCrystal_I2C library (page 4).
+
+### hd44780 by Bill Perry
+
+- Title: hd44780, library.properties version 1.3.2
+- Publisher: Bill Perry (duinoWitchery)
+- URL: https://github.com/duinoWitchery/hd44780
+- Revision: tag 1.3.2 (tag object 8980050e48ab50f222aea8dfe00c68b83002f078), commit 27fd9d3809a92e744eef60b13dfcf4096c91cbe8, https://github.com/duinoWitchery/hd44780/tree/27fd9d3809a92e744eef60b13dfcf4096c91cbe8
+- Read on 2026-11-07: CI installs it as `hd44780@1.3.2` from the Arduino Library Manager (`.github/workflows/ci.yml` line 41), whose index lists https://downloads.arduino.cc/libraries/github.com/duinoWitchery/hd44780-1.3.2.zip, 464103 bytes, SHA-256 `c1408b8129a225fa4e2f3e2e3bef709c1f98ca53dadedfcc9b071f083e504f89`. The installed `hd44780ioClass/hd44780_I2Cexp.h` is the file at that commit: 41602 bytes, SHA-256 `2573418c85ca871a4006511c355f2c16388c8fc85afaf110eb8183cd3647372f`.
+- Not copied here: CI installs it. It is licensed GPL-3.0.
+- What it is: the host's LCD library. Its `hd44780_I2Cexp` class finds the backpack's address and pin map itself.
+
 ## Host buzzer: a passive piezo
 
 The host plays its wrong-answer tone on this buzzer. Its data sheet doesn't let itself be copied, so it is listed by its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read.
