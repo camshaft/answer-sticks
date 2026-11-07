@@ -1,0 +1,49 @@
+name: Fetch the nRF52840 Product Specification
+
+# A temporary workflow: it runs on pushes to this branch alone, downloads the newest revision of
+# the specification that Nordic's documentation site serves, and prints its SHA-256 and its text,
+# each line after its page number. The branch removes it before its pull request merges.
+on:
+  push:
+    branches: [nrf52840-ps-source]
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    name: Download the specification, hash it and print its text
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install poppler-utils
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Download the newest revision Nordic serves
+        run: |
+          agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          found=''
+          for v in 1.15 1.14 1.13 1.12 1.11 1.10 1.9 1.8 1.7; do
+            for base in https://docs.nordicsemi.com/bundle/ps_nrf52840/attach https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach; do
+              url="$base/nRF52840_PS_v$v.pdf?_LANG=enus"
+              rm -f candidate.pdf
+              result=$(curl -sSL -A "$agent" -o candidate.pdf -w '%{http_code} %{content_type} %{url_effective}' "$url" || true)
+              magic=$(head -c 4 candidate.pdf 2>/dev/null || true)
+              echo "try $url -> $result magic=$magic"
+              if [ "$magic" = "%PDF" ]; then
+                mv candidate.pdf ps.pdf
+                found="$url"
+                break 2
+              fi
+            done
+          done
+          if [ -z "$found" ]; then
+            echo "Nordic's site didn't serve a PDF at any URL tried"
+            exit 1
+          fi
+          echo "found $found"
+          sha256sum ps.pdf
+          ls -l ps.pdf
+          pdfinfo ps.pdf
+      - name: Print the text, each line after its page number
+        run: |
+          pdftotext -layout ps.pdf ps.txt
+          awk 'BEGIN { page = 1 } { n = split($0, parts, "\f"); for (i = 1; i <= n; i++) { if (i > 1) page++; print "p" page ": " parts[i] } }' ps.txt
