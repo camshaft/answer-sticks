@@ -17,15 +17,30 @@ jobs:
     steps:
       - name: Install poppler-utils
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Show what the documentation site answers
+        run: |
+          agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          for url in \
+            'https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus' \
+            'https://docs.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus' \
+            'https://docs.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html' \
+            'https://docs-be.nordicsemi.com/bundle/ps_nrf52840/page/keyfeatures_html5.html?_LANG=enus'; do
+            echo "=== $url"
+            curl -sS -A "$agent" -e 'https://docs.nordicsemi.com/' -H 'Accept: text/html,application/pdf,*/*' \
+              -D - -o body.bin "$url" || true
+            echo "--- first bytes"
+            head -c 600 body.bin | tr -c '[:print:]\n' '.' || true
+            echo
+          done
       - name: Download the newest revision Nordic serves
         run: |
           agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
           found=''
           for v in 1.15 1.14 1.13 1.12 1.11 1.10 1.9 1.8 1.7; do
-            for base in https://docs.nordicsemi.com/bundle/ps_nrf52840/attach https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach; do
+            for base in https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach https://docs.nordicsemi.com/bundle/ps_nrf52840/attach; do
               url="$base/nRF52840_PS_v$v.pdf?_LANG=enus"
               rm -f candidate.pdf
-              result=$(curl -sSL -A "$agent" -o candidate.pdf -w '%{http_code} %{content_type} %{url_effective}' "$url" || true)
+              result=$(curl -sSL -A "$agent" -e 'https://docs.nordicsemi.com/' -o candidate.pdf -w '%{http_code} %{content_type} %{url_effective}' "$url" || true)
               magic=$(head -c 4 candidate.pdf 2>/dev/null || true)
               echo "try $url -> $result magic=$magic"
               if [ "$magic" = "%PDF" ]; then
