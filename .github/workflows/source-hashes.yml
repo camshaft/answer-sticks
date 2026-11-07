@@ -1,0 +1,33 @@
+name: Source hashes (temporary)
+
+# Downloads each LCD source file and prints its size, its headers, its PDF metadata and its
+# SHA-256, for the lines of docs/sources/README.md. This file is removed before the pull
+# request merges.
+on:
+  push:
+    branches: [sources-hd44780-lcd]
+
+permissions:
+  contents: read
+
+jobs:
+  hash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pdfinfo
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - name: Hash each source file
+        run: |
+          set -eu
+          for url in \
+            https://newhavendisplay.com/content/specs/NHD-0420H1Z-FL-GBW-33V3.pdf \
+            https://newhavendisplay.com/content/app_notes/ST7066U.pdf \
+            https://cdn.sparkfun.com/assets/9/5/f/7/b/HD44780.pdf
+          do
+            echo "=== $url"
+            curl -sSfL -A "Mozilla/5.0" -D headers.txt -o source.pdf "$url"
+            grep -iE '^(HTTP|content-type|content-length|last-modified|etag|location):' headers.txt || true
+            echo "bytes: $(stat -c %s source.pdf)"
+            pdfinfo source.pdf | grep -E '^(Title|Producer|Creator|CreationDate|ModDate|Pages):' || true
+            echo "sha256: $(sha256sum source.pdf | cut -d' ' -f1)"
+          done
