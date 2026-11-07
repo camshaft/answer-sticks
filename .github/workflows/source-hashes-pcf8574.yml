@@ -1,7 +1,7 @@
 name: Source hashes, PCF8574 and hd44780 (temporary)
 
-# Retries the NXP data sheet, and reads the text in the backpack schematics' images, for the
-# lines of docs/sources/README.md. This branch never merges.
+# Downloads the PCF8574A data sheets from TI, NXP and the Wayback Machine's copy of NXP's, for
+# the lines of docs/sources/README.md. This branch never merges.
 on:
   push:
     branches: [sources-pcf8574-hash]
@@ -10,62 +10,40 @@ permissions:
   contents: read
 
 jobs:
-  nxp:
+  pcf8574a:
     runs-on: ubuntu-latest
     steps:
       - name: Install pdfinfo and pdftotext
         run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
-      - name: Hash the NXP data sheet
+      - name: Hash the data sheets
         run: |
           set -u
           ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           fetch() {
-            name=$1; url=$2; shift 2
-            echo "=== $name $url"
-            rm -f headers.txt
-            if curl -sSfL -A "$ua" "$@" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
-              grep -iE '^(HTTP|content-type|content-length|last-modified|etag|location|memento-datetime|x-archive-orig-last-modified):' headers.txt || true
-              echo "bytes: $(stat -c %s "$name.pdf")"
-              pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
-              echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
-            else
+            name=$1; url=$2
+            for attempt in 1 2 3; do
+              echo "=== $name $url attempt $attempt"
+              rm -f headers.txt "$name.pdf"
+              if curl -sSfL -A "$ua" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
+                grep -iE '^(HTTP|content-type|content-length|last-modified|etag|memento-datetime|x-archive-orig-last-modified|x-archive-orig-content-length):' headers.txt || true
+                echo "bytes: $(stat -c %s "$name.pdf")"
+                pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
+                echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
+                return 0
+              fi
               echo "download failed"
               rm -f "$name.pdf"
-            fi
-          }
-          fetch nxp https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf \
-            -H 'Accept: application/pdf,text/html;q=0.9,*/*;q=0.8' -H 'Accept-Language: en-US,en;q=0.9' \
-            -H 'Referer: https://www.nxp.com/products/PCF8574_74A'
-          fetch nxp-archive https://web.archive.org/web/2026id_/https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf
-          for f in nxp nxp-archive; do
-            [ -f "$f.pdf" ] || continue
-            for p in 1 5 6 16 17 33; do
-              echo "--- $f page $p"
-              pdftotext -layout -f "$p" -l "$p" "$f.pdf" - | grep -nE '100 kHz|2\.5 V|Rev\. ?5|27 May 2013|Table (4|5|9|10)|[0-9A-F]h|VDD|fSCL|SCL clock' || echo "(no match)"
+              sleep 20
             done
-          done
-
-  ocr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install poppler, tesseract and imagemagick
-        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick
-      - name: Read the text in the schematics' images
-        run: |
-          set -u
-          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sSfL -A "$ua" -o hanako.pdf https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
-          curl -sSfL -A "$ua" -o handsontec.pdf https://www.handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
-          sha256sum hanako.pdf handsontec.pdf
-          mkdir -p img
-          pdfimages -j -f 1 -l 1 hanako.pdf img/hanako
-          pdfimages -j -f 6 -l 6 handsontec.pdf img/handsontec6
-          pdfimages -j -f 2 -l 2 handsontec.pdf img/handsontec2
-          ls -l img
-          for i in img/*; do
-            for r in 0 90 270; do
-              convert "$i" -rotate "$r" -colorspace Gray -resize 200% rot.png
-              echo "=== OCR $i rotated $r"
-              tesseract rot.png - --psm 11 2>/dev/null | grep -vE '^\s*$' || true
+          }
+          fetch tia https://www.ti.com/lit/ds/symlink/pcf8574a.pdf
+          fetch nxpcn https://www.nxp.com.cn/docs/en/data-sheet/PCF8574_PCF8574A.pdf
+          fetch nxparchive https://web.archive.org/web/20250101000000id_/https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf
+          for f in tia nxpcn nxparchive; do
+            [ -f "$f.pdf" ] || continue
+            n=$(pdfinfo "$f.pdf" | awk '/^Pages:/ {print $2}')
+            for p in $(seq 1 "$n"); do
+              out=$(pdftotext -layout -f "$p" -l "$p" "$f.pdf" - | grep -nE 'SCPS0|REVISED|100 kHz|Rev\. ?[0-9]+ .*20[0-9][0-9]|Product data sheet|Supply voltage|VCC  |VDD  |fscl|fSCL|SCL clock frequency|address map|Address Reference|0111|[0-9A-F]h  |Table (4|5|9|10)\.' || true)
+              if [ -n "$out" ]; then echo "--- $f page $p"; echo "$out"; fi
             done
           done
