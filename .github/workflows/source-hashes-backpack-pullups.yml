@@ -1,70 +1,44 @@
 name: Source hashes, LCD backpack pull-ups (temporary)
 
-# Downloads schematics and guides of the PCF8574 LCD backpack, prints each file's size,
-# SHA-256 and text, for the line of docs/sources/README.md on the backpack's SDA and SCL
-# pull-ups. This branch never merges.
+# Renders the seller's schematic of the PCF8574 LCD backpack as PNG pictures and commits
+# them to this branch, so that its resistor labels can be read by eye, for the line of
+# docs/sources/README.md on the backpack's SDA and SCL pull-ups. This branch never merges.
 on:
   push:
     branches: [sources-backpack-pullups-hash]
+    paths: ['.github/workflows/**']
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   schematics:
     runs-on: ubuntu-latest
     steps:
-      - name: Install poppler, tesseract and imagemagick
-        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick qpdf
-      - name: Hash and read the files
+      - uses: actions/checkout@v4
+      - name: Install poppler
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - name: Render the schematic
         run: |
           set -u
-          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          fetch() {
-            name=$1; url=$2
-            for attempt in 1 2 3; do
-              echo "=== $name $url attempt $attempt"
-              rm -f headers.txt "$name.pdf"
-              if curl -sSfL -A "$ua" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
-                grep -iE '^(HTTP|content-type|content-length|last-modified|etag):' headers.txt || true
-                echo "bytes: $(stat -c %s "$name.pdf")"
-                pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
-                echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
-                return 0
-              fi
-              echo "download failed"
-              rm -f "$name.pdf"
-              sleep 20
-            done
-          }
-          words() {
-            # Each word tesseract reads, with its position and confidence.
-            tesseract "$1" - --psm 11 tsv 2>/dev/null | awk -F'\t' 'NR>1 && $12 != "" && $12 !~ /^[[:space:]]*$/ {print $7","$8" c"$11" "$12}' | head -600 || true
-          }
-          fetch hvandeven "https://github.com/HvandeVen/PCF8574-Display/raw/master/I2C%20LCD%20Adapter%20Schematic.pdf"
-          if [ -f hvandeven.pdf ]; then
-            for rot in 0 90 180 270; do
-              qpdf --rotate=+$rot:1 hvandeven.pdf hv-$rot.pdf || cp hvandeven.pdf hv-$rot.pdf
-              pdftoppm -r 1200 -gray -png -singlefile hv-$rot.pdf hv-$rot || true
-              identify hv-$rot.png || true
-              echo "##### hvandeven at 1200 dpi turned $rot degrees: each word, x,y and confidence"
-              if [ -f hv-$rot.png ]; then words hv-$rot.png; fi
-            done
-          fi
-          fetch hand1602 https://handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
-          fetch hand2004 https://www.handsontec.com/dataspecs/module/I2C_2004_LCD.pdf
-          for f in hand1602 hand2004; do
-            [ -f "$f.pdf" ] || continue
-            echo "##### $f text lines on pull-ups, resistors, SDA and SCL"
-            pdftotext -layout "$f.pdf" - | grep -inE 'pull|resist|sda|scl|4\.7|4k7|10k|schematic' || true
-            mkdir -p "img-$f"
-            pdfimages -list "$f.pdf" | head -40 || true
-            pdfimages -png "$f.pdf" "img-$f/i" || true
-            for img in img-$f/*.png; do
-              w=$(identify -format '%w' "$img" 2>/dev/null || echo 0)
-              h=$(identify -format '%h' "$img" 2>/dev/null || echo 0)
-              [ "$w" -ge 300 ] && [ "$h" -ge 200 ] || continue
-              echo "##### $f image $img ${w}x${h}: words with a digit, or SDA, SCL, VCC, pull"
-              tesseract "$img" - --psm 11 2>/dev/null | grep -iE '[0-9]|sda|scl|vcc|vdd|pull|res' | head -80 || true
-            done
+          curl -sSfL -o hv.pdf "https://github.com/HvandeVen/PCF8574-Display/raw/master/I2C%20LCD%20Adapter%20Schematic.pdf"
+          echo "sha256: $(sha256sum hv.pdf | cut -d' ' -f1)"
+          pdfinfo hv.pdf | grep -E '^(Page size|Pages):' || true
+          mkdir -p renders
+          pdftoppm -r 150 -gray -png -singlefile hv.pdf renders/whole-150dpi
+          # The left, middle and right thirds of the page at 400 dpi.
+          read -r w h < <(pdfinfo hv.pdf | awk '/^Page size/ {print int($3*400/72), int($5*400/72)}')
+          third=$((w / 3 + 200))
+          for i in 0 1 2; do
+            x=$((i * w / 3 - (i > 0 ? 100 : 0)))
+            [ "$x" -lt 0 ] && x=0
+            pdftoppm -r 400 -gray -png -singlefile -x "$x" -y 0 -W "$third" -H "$h" hv.pdf "renders/part$i-400dpi"
           done
+          ls -l renders
+      - name: Commit the pictures to this branch
+        run: |
+          git config user.name "source-hashes"
+          git config user.email "source-hashes@users.noreply.github.com"
+          git add renders
+          git commit -m "Pictures of the seller's backpack schematic, for reading its resistor labels (temporary, never merges)"
+          git push origin HEAD:sources-backpack-pullups-hash
