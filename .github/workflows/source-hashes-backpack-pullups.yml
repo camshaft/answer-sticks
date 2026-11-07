@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install poppler, tesseract and imagemagick
-        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick qpdf
       - name: Hash and read the files
         run: |
           set -u
@@ -43,12 +43,12 @@ jobs:
           }
           fetch hvandeven "https://github.com/HvandeVen/PCF8574-Display/raw/master/I2C%20LCD%20Adapter%20Schematic.pdf"
           if [ -f hvandeven.pdf ]; then
-            pdftoppm -r 1200 -gray -png -singlefile hvandeven.pdf hv
-            identify hv.png || true
             for rot in 0 90 180 270; do
-              convert hv.png -rotate $rot hv-$rot.png
+              qpdf --rotate=+$rot:1 hvandeven.pdf hv-$rot.pdf || cp hvandeven.pdf hv-$rot.pdf
+              pdftoppm -r 1200 -gray -png -singlefile hv-$rot.pdf hv-$rot || true
+              identify hv-$rot.png || true
               echo "##### hvandeven at 1200 dpi turned $rot degrees: each word, x,y and confidence"
-              words hv-$rot.png
+              if [ -f hv-$rot.png ]; then words hv-$rot.png; fi
             done
           fi
           fetch hand1602 https://handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
