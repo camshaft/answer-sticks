@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Compile the host and stick sketches
+    runs-on: ubuntu-latest
+    env:
+      # The Adafruit board index, which lists the adafruit:nrf52 core. arduino-cli reads this
+      # variable as its board_manager.additional_urls setting.
+      ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+        with:
+          version: 1.5.1
+      # The core's build step packages the firmware with adafruit-nrfutil, which the core
+      # doesn't install on Linux.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install adafruit-nrfutil
+        run: pip install adafruit-nrfutil
+      - name: Install the Adafruit nRF52 core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install adafruit:nrf52@1.7.0
+      # The pinned libraries: nrf_to_nrf for the radio of both sketches, and hd44780 for the
+      # host's LCD. The README lists the same versions.
+      - name: Install the libraries
+        run: |
+          arduino-cli lib update-index
+          arduino-cli lib install nrf_to_nrf@1.7.0 hd44780@1.3.2
+      - name: Compile the host sketch
+        run: arduino-cli compile --fqbn adafruit:nrf52:pca10056 --library libraries/AnswerSticks host
+      - name: Compile the stick sketch
+        run: arduino-cli compile --fqbn adafruit:nrf52:pca10056 --library libraries/AnswerSticks stick
+
+  test:
+    name: Build and run the library tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Builds every test source with the library and the runner's g++, without a board.
+      - name: Build the tests
+        run: g++ -std=c++17 -Wall -Wextra -Werror -I libraries/AnswerSticks -o answer-sticks-tests test/*.cpp
+      - name: Run the tests
+        run: ./answer-sticks-tests
