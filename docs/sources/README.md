@@ -60,3 +60,19 @@ None of these three data sheets lets itself be copied, so each is listed by its 
 - SHA-256: `4324d67ec14fc8e7ba8cf7db7256749c9b80b94b3f8bedfa614a0d2839c7dea9`
 - Not copied here: its Cautions, item 6, say "No one is permitted to reproduce or duplicate, in any form, the whole or part of this document without written approval from Hitachi."
 - What it is: the controller whose instruction set the ST7066U and the hd44780 library follow.
+
+## Host buzzer: a passive piezo
+
+The host plays its wrong-answer tone on this buzzer. Its data sheet doesn't let itself be copied, so it is listed by its title, its publisher, its URL, its revision, and the size and SHA-256 of the file read.
+
+### TDK PS1240P02BT
+
+- Title: Piezoelectronic buzzers, Without oscillator circuit, Pin terminal type, PS series (PS12, PS14, PS17)
+- Publisher: TDK Corporation; the file is Adafruit Industries' copy, which its product 160 links to
+- URL: https://cdn-shop.adafruit.com/product-files/160/160_ds.pdf (TDK's own copy, https://product.tdk.com/system/files/dam/doc/product/sw_piezo/sw_piezo/piezo-buzzer/catalog/piezoelectronic_buzzer_ps_en.pdf, answered HTTP 403 on 2026-11-07)
+- Revision: 20220222 (piezoelectronic_buzzer_ps_en, February 2022); 11 pages
+- Read on 2026-11-07: 431437 bytes
+- SHA-256: `1cc2789af2cb03705e09b8b6e49710c4003f4e5f6fbeb7f0873b8a25c686e60e`
+- Not copied here: the catalog doesn't give a license to copy it.
+- What it is: a piezo buzzer without an oscillator circuit, driven by an outside square wave, 12.2 mm across with its two pins 5 mm apart.
+- Where to buy: Adafruit, https://www.adafruit.com/product/160 (US$1.50, in stock on 2026-11-07), under the name "Piezo Buzzer - PS1240". Its listed height of 6.53 mm is the PS1240P02BT's 6.5 mm, not the 3.5 mm of the PS1240P02CT3.
