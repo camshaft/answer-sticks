@@ -3,6 +3,25 @@
 The manuals, data sheets and libraries the host and the stick are built on, each at the version the code relies on.
 
 - nrf_to_nrf by TMRh20, the radio library of both sketches: https://github.com/TMRh20/nrf_to_nrf at tag v1.7.0, commit d1810ab1d6fb9ef8cedf6487d54fcacf0337ee65 (https://github.com/TMRh20/nrf_to_nrf/tree/d1810ab1d6fb9ef8cedf6487d54fcacf0337ee65). CI installs it as `nrf_to_nrf@1.7.0` from the Arduino Library Manager, which builds its release 1.7.0 from that tag.
+- Adafruit nRF52 Arduino core (`adafruit:nrf52`), the board package both sketches build with: https://github.com/adafruit/Adafruit_nRF52_Arduino at release tag 1.7.0, commit ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab (https://github.com/adafruit/Adafruit_nRF52_Arduino/tree/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab; release page https://github.com/adafruit/Adafruit_nRF52_Arduino/releases/tag/1.7.0). CI installs it as `adafruit:nrf52@1.7.0` from Adafruit's board index. Its build step in `platform.txt` runs adafruit-nrfutil, which CI installs with `pip install adafruit-nrfutil` and no version; CI's run of commit 49f064d87c30ab834dcd6793569f9a6c06b49a8e (https://github.com/camshaft/answer-sticks/actions/runs/42420394770) installed adafruit-nrfutil 0.5.3.post16. The files read at that commit:
+  - `platform.txt`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/platform.txt
+  - `variants/pca10056/variant.h`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/variants/pca10056/variant.h
+  - `variants/pca10056/variant.cpp`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/variants/pca10056/variant.cpp
+  - `cores/nRF5/main.cpp`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/main.cpp
+  - `cores/nRF5/wiring.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/wiring.c
+  - `cores/nRF5/delay.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/delay.c
+  - `cores/nRF5/wiring_digital.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/wiring_digital.c
+  - `cores/nRF5/wiring_analog_nRF52.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/wiring_analog_nRF52.c
+  - `cores/nRF5/WInterrupts.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/WInterrupts.c
+  - `cores/nRF5/Tone.cpp`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/Tone.cpp
+  - `cores/nRF5/freertos/config/FreeRTOSConfig.h`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/freertos/config/FreeRTOSConfig.h
+  - `cores/nRF5/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/cores/nRF5/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c
+  - `libraries/Wire/Wire.h`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/Wire/Wire.h
+  - `libraries/Wire/Wire_nRF52.cpp`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/Wire/Wire_nRF52.cpp
+  - `libraries/Bluefruit52Lib/src/bluefruit.cpp`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/Bluefruit52Lib/src/bluefruit.cpp
+  - `libraries/InternalFileSytem/src/InternalFileSystem.cpp` (the core spells the directory `InternalFileSytem`): https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/InternalFileSytem/src/InternalFileSystem.cpp
+  - `libraries/InternalFileSytem/src/flash/flash_nrf5x.c`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/InternalFileSytem/src/flash/flash_nrf5x.c
+  - `libraries/InternalFileSytem/src/flash/flash_nrf5x.h`: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/ba4ad90d7e90c2ad5d4c98c10539f1f77fafa6ab/libraries/InternalFileSytem/src/flash/flash_nrf5x.h
 
 ## Host LCD: the 20x4 module and its controllers
 
