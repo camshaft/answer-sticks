@@ -14,8 +14,8 @@ jobs:
   schematics:
     runs-on: ubuntu-latest
     steps:
-      - name: Install poppler and tesseract
-        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr qpdf
+      - name: Install poppler, tesseract and imagemagick
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick
       - name: Hash and read the files
         run: |
           set -u
@@ -26,7 +26,7 @@ jobs:
               echo "=== $name $url attempt $attempt"
               rm -f headers.txt "$name.pdf"
               if curl -sSfL -A "$ua" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
-                grep -iE '^(HTTP|content-type|content-length|last-modified|etag|memento-datetime|x-archive-orig-last-modified|x-archive-orig-content-length):' headers.txt || true
+                grep -iE '^(HTTP|content-type|content-length|last-modified|etag):' headers.txt || true
                 echo "bytes: $(stat -c %s "$name.pdf")"
                 pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
                 echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
@@ -37,18 +37,34 @@ jobs:
               sleep 20
             done
           }
+          words() {
+            # Each word tesseract reads, with its position and confidence.
+            tesseract "$1" - --psm 11 tsv 2>/dev/null | awk -F'\t' 'NR>1 && $12 != "" && $12 !~ /^[[:space:]]*$/ {print $7","$8" c"$11" "$12}' | head -600 || true
+          }
           fetch hvandeven "https://github.com/HvandeVen/PCF8574-Display/raw/master/I2C%20LCD%20Adapter%20Schematic.pdf"
-          fetch mikroarchive https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
-          for f in hvandeven mikroarchive; do
-            [ -f "$f.pdf" ] || continue
-            pdftoppm -r 600 -png "$f.pdf" "ocr-$f"
-            for img in ocr-$f*.png; do
-              echo "##### $f OCR at 600 dpi, sparse text, every word"
-              tesseract "$img" - --psm 11 2>/dev/null | sed -e '/^[[:space:]]*$/d' | head -400 || true
-              echo "##### $f OCR at 600 dpi, as a block"
-              tesseract "$img" - --psm 6 2>/dev/null | sed -e '/^[[:space:]]*$/d' | head -200 || true
+          if [ -f hvandeven.pdf ]; then
+            pdftoppm -r 1200 -gray -png -singlefile hvandeven.pdf hv
+            identify hv.png || true
+            for rot in 0 90 180 270; do
+              convert hv.png -rotate $rot hv-$rot.png
+              echo "##### hvandeven at 1200 dpi turned $rot degrees: each word, x,y and confidence"
+              words hv-$rot.png
             done
-            echo "##### $f vector drawing: count of paths and of text objects in the page stream"
-            qpdf --qdf --object-streams=disable "$f.pdf" "$f-qdf.pdf" 2>/dev/null || true
-            [ -f "$f-qdf.pdf" ] && grep -a -c ' Tj\| TJ' "$f-qdf.pdf" || true
+          fi
+          fetch hand1602 https://handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
+          fetch hand2004 https://www.handsontec.com/dataspecs/module/I2C_2004_LCD.pdf
+          for f in hand1602 hand2004; do
+            [ -f "$f.pdf" ] || continue
+            echo "##### $f text lines on pull-ups, resistors, SDA and SCL"
+            pdftotext -layout "$f.pdf" - | grep -inE 'pull|resist|sda|scl|4\.7|4k7|10k|schematic' || true
+            mkdir -p "img-$f"
+            pdfimages -list "$f.pdf" | head -40 || true
+            pdfimages -png "$f.pdf" "img-$f/i" || true
+            for img in img-$f/*.png; do
+              w=$(identify -format '%w' "$img" 2>/dev/null || echo 0)
+              h=$(identify -format '%h' "$img" 2>/dev/null || echo 0)
+              [ "$w" -ge 300 ] && [ "$h" -ge 200 ] || continue
+              echo "##### $f image $img ${w}x${h}: words with a digit, or SDA, SCL, VCC, pull"
+              tesseract "$img" - --psm 11 2>/dev/null | grep -iE '[0-9]|sda|scl|vcc|vdd|pull|res' | head -80 || true
+            done
           done
