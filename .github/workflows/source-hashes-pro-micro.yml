@@ -1,0 +1,103 @@
+name: Source hashes, Pro Micro nRF52840 (temporary)
+
+# Downloads each Pro Micro nRF52840 (SuperMini / nice!nano layout) source and prints its size, its
+# headers, its SHA-256 and the lines docs/sources/README.md cites. This branch never merges.
+on:
+  push:
+    branches: [sources-pro-micro-hash]
+
+permissions:
+  contents: read
+
+jobs:
+  files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pdfinfo and pdftotext
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - name: Hash each file
+        run: |
+          set -u
+          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          fetch() {
+            name=$1; url=$2; shift 2
+            echo "=== $name $url"
+            rm -f headers.txt
+            if curl -sSfL "$@" -A "$ua" -D headers.txt -o "$name" "$url"; then
+              grep -iE '^(HTTP|content-type|content-length|last-modified|etag|location):' headers.txt || true
+              echo "bytes: $(stat -c %s "$name")"
+              case "$name" in *.pdf) pdfinfo "$name" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true ;; esac
+              echo "sha256: $(sha256sum "$name" | cut -d' ' -f1)"
+            else
+              echo "download failed"
+              cat headers.txt 2>/dev/null || true
+            fi
+          }
+          fetch nn-index.html https://nicekeyboards.com/docs/nice-nano/
+          fetch nn-pinout.html https://nicekeyboards.com/docs/nice-nano/pinout-schematic/
+          fetch nn-faq.html https://nicekeyboards.com/docs/nice-nano/faq/
+          fetch nologo.html https://www.nologo.tech/en/product/otherboard/NRF52840.html
+          fetch icbbuy.html "https://wiki.icbbuy.com/doku.php?id=developmentboard:nrf52840&rev=1710828088"
+          fetch icbbuy-raw.txt "https://wiki.icbbuy.com/doku.php?id=developmentboard:nrf52840&rev=1710828088&do=export_raw"
+          fetch nologo-d80.html https://chat.nologo.tech/d/80 -k
+          fetch tp4054-utd.pdf "https://media.digikey.com/pdf/Data%20Sheets/UTD%20Semi%20PDFs/TP4054.pdf"
+          fetch tp4054-laskakit.pdf https://www.laskakit.cz/user/related_files/tp4054.pdf
+          fetch me6217.pdf https://datasheet4u.com/pdf/1334140/ME6217.pdf
+          fetch zmk-2_0_0.overlay https://raw.githubusercontent.com/zmkfirmware/zmk/a23aa009d7a07d67fe5609caca7372e16610f238/app/boards/nicekeyboards/nice_nano/nice_nano_nrf52840_zmk_2_0_0.overlay
+          fetch zmk-1_0_0.overlay https://raw.githubusercontent.com/zmkfirmware/zmk/a23aa009d7a07d67fe5609caca7372e16610f238/app/boards/nicekeyboards/nice_nano/nice_nano_nrf52840_zmk_1_0_0.overlay
+          fetch bootloader-board.h https://raw.githubusercontent.com/adafruit/Adafruit_nRF52_Bootloader/7cf6787810c83029f09866e141be804264d251df/src/boards/nice_nano/board.h
+
+          for pair in "zmk-2_0_0.overlay docs/sources/zmk/nice_nano_nrf52840_zmk_2_0_0.overlay" \
+                      "zmk-1_0_0.overlay docs/sources/zmk/nice_nano_nrf52840_zmk_1_0_0.overlay" \
+                      "bootloader-board.h docs/sources/adafruit-nrf52-bootloader/nice_nano/board.h"; do
+            set -- $pair
+            if cmp "$1" "$2"; then echo "same: $2"; else echo "differs: $2"; fi
+          done
+
+          echo "=== nologo-d80 links"
+          grep -oE '(href|src)="[^"]+"' nologo-d80.html | grep -iE 'pdf|png|jpg|jpeg|sch|upload|assets' | sort -u | head -n 80 || true
+          echo "=== nologo-d80 text"
+          sed -e 's/<[^>]*>/ /g' nologo-d80.html | tr -s ' \t' ' ' | grep -iE 'schem|P0\.13|VCC|ppm|crystal|TP4054|ME6217|LDO|charg|bootloader|uf2' | head -n 80 || true
+          echo "=== icbbuy raw"
+          cat icbbuy-raw.txt 2>/dev/null | head -n 200 || true
+
+          page_grep() {
+            f=$1; pat=$2
+            n=$(pdfinfo "$f" 2>/dev/null | awk '/^Pages:/ {print $2}')
+            for p in $(seq 1 "${n:-0}"); do
+              pdftotext -layout -f "$p" -l "$p" "$f" - 2>/dev/null | grep -nE "$pat" | sed "s/^/$f p$p: /" || true
+            done
+          }
+          page_grep tp4054-utd.pdf 'RPROG|4\.2|sleep|Sleep|standby|Turn off|1000|Rev|V[0-9]\.[0-9]'
+          page_grep tp4054-laskakit.pdf 'RPROG|R PROG|4\.2|Sleep|Standby|Shutdown|1000|1\.66|Rev'
+          page_grep me6217.pdf 'V3\.0|ISS|800|Dropout|VDIF|CE|SOT23-5|Power Dissipation|6\.5'
+
+  repos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pin and hash the git sources
+        run: |
+          set -u
+          git clone -q https://github.com/joric/nrfmicro.wiki.git wiki
+          echo "=== joric/nrfmicro wiki"
+          git -C wiki log -n 3 --format='%H %cI %s' -- Alternatives.md
+          sha256sum wiki/Alternatives.md
+          grep -nE 'SuperMini|ProMicro|P0\.13|TP4054|LTH7|ME6217|RT9013|TP2028|S2LC|J2WD|700uA|10M|60uA|4uA|0\.24|BQ2407|AP2112|LN2054|crystal|32\.768|NICENANO|ppm' wiki/Alternatives.md | head -n 120
+
+          git clone -q https://github.com/sasodoma/nrf52840-promicro.git promicro
+          git -C promicro checkout -q fb046164890ad2034fc87daf87fb5a5bcb22dee3
+          echo "=== sasodoma/nrf52840-promicro at $(git -C promicro rev-parse HEAD)"
+          git -C promicro log -n 1 --format='%H %cI %s'
+          ls -la promicro promicro/KiCad
+          sha256sum promicro/README.md promicro/KiCad/promicro.kicad_sch
+          ls promicro | grep -iE 'license|copying' || echo "no license file"
+
+          git clone -q https://github.com/Nice-Keyboards/nice-keyboards-docs.git nkdocs || git clone -q https://github.com/Nice-Keyboards/docs.git nkdocs || true
+          if [ -d nkdocs ]; then
+            echo "=== nice docs at $(git -C nkdocs rev-parse HEAD) $(git -C nkdocs log -n 1 --format=%cI)"
+            ls nkdocs
+            grep -iE '"license"|^MIT' -r nkdocs/package.json nkdocs/LICENSE* 2>/dev/null | head -n 5 || true
+            find nkdocs -path '*nice-nano*' -name '*.md*' | sort | while read -r f; do echo "$(sha256sum "$f" | cut -d' ' -f1) $(git -C nkdocs log -n 1 --format='%H %cI' -- "${f#nkdocs/}") $f"; done
+            grep -rnE 'P0\.13|VCC|charg|boost|bootloader|0\.6\.0|s140|S140|crystal|32\.768|oscillator|P0\.04|P0\.15|LED|quiescent|uA|µA|mA' $(find nkdocs -path '*nice-nano*' -name '*.md*') | head -n 150
+          fi
