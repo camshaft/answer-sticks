@@ -76,3 +76,18 @@ The host plays its wrong-answer tone on this buzzer. Its data sheet doesn't let 
 - Not copied here: the catalog doesn't give a license to copy it.
 - What it is: a piezo buzzer without an oscillator circuit, driven by an outside square wave, 12.2 mm across with its two pins 5 mm apart.
 - Where to buy: Adafruit, https://www.adafruit.com/product/160 (US$1.50, in stock on 2026-11-07), under the name "Piezo Buzzer - PS1240". Its listed height of 6.53 mm is the PS1240P02BT's 6.5 mm, not the 3.5 mm of the PS1240P02CT3.
+
+## Chip: Nordic Semiconductor nRF52840
+
+The host and every stick run on the nRF52840. Its product specification doesn't let itself be copied either, so it is listed the same way as the LCD data sheets.
+
+### nRF52840 Product Specification
+
+- Title: nRF52840 Product Specification v1.11
+- Publisher: Nordic Semiconductor ASA
+- URL: https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus, the PDF that Nordic's documentation site attaches to the nRF52840 product specification
+- Revision: v1.11, October 2024, document 4413_417 v1.11 (the footer of each page), the newest entry of its revision history (page 12); 980 pages, created 2024-10-01
+- Read on 2026-11-07: 18583008 bytes, from the Internet Archive's capture of that URL of 2025-08-25, https://web.archive.org/web/20250825153625id_/https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus. Nordic's servers answered a script's read with a browser check (docs.nordicsemi.com) or a redirect to their web reader (docs-be.nordicsemi.com). The Archive lists each of its captures of the URL, from 2025-02-07 to 2025-10-10, with the same content digest, SHA-1 `57POWQZB6QHXZOI2RWLGZFE3KOCAVCMO` in base 32, and the file read has that digest. A copy downloaded from Nordic in a browser can be checked against the SHA-256 below; where it matches, this entry can cite Nordic's download instead of the Archive's capture.
+- SHA-256: `6e5950cc7e8272d1803279b8cfe3a6ea2c48be46735db3bc3b0a351e3665ecdf`
+- Not copied here: its Copyright notice (Legal notices, page 979) says "All rights are reserved. Reproduction in whole or in part is prohibited without the prior written permission of the copyright holder."
+- What it is: the data sheet of the chip both sketches run on. The design reads its radio (section 6.20: packet layout, MODECNF0 and radio timing), clocks (5.4), current consumption and System OFF (5.2 and 5.3.3), GPIO and GPIOTE (6.9 and 6.10), SAADC (6.23), TIMER (6.30) and the aQFN73 ball assignments (7.1.1).
