@@ -1,8 +1,7 @@
 name: Source hashes, PCF8574 and hd44780 (temporary)
 
-# Downloads each PCF8574, I2C backpack and hd44780 source file and prints its size, its headers,
-# its PDF metadata, its SHA-256 and the lines docs/sources/README.md cites. This branch never
-# merges.
+# Retries the NXP data sheet, and reads the text in the backpack schematics' images, for the
+# lines of docs/sources/README.md. This branch never merges.
 on:
   push:
     branches: [sources-pcf8574-hash]
@@ -11,97 +10,62 @@ permissions:
   contents: read
 
 jobs:
-  pdfs:
+  nxp:
     runs-on: ubuntu-latest
     steps:
       - name: Install pdfinfo and pdftotext
         run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
-      - name: Hash each PDF
+      - name: Hash the NXP data sheet
         run: |
           set -u
           ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           fetch() {
-            name=$1; url=$2
+            name=$1; url=$2; shift 2
             echo "=== $name $url"
             rm -f headers.txt
-            if curl -sSfL -A "$ua" -D headers.txt -o "$name.pdf" "$url"; then
-              grep -iE '^(HTTP|content-type|content-length|last-modified|etag|location):' headers.txt || true
+            if curl -sSfL -A "$ua" "$@" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
+              grep -iE '^(HTTP|content-type|content-length|last-modified|etag|location|memento-datetime|x-archive-orig-last-modified):' headers.txt || true
               echo "bytes: $(stat -c %s "$name.pdf")"
               pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
               echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
             else
               echo "download failed"
-              cat headers.txt 2>/dev/null || true
+              rm -f "$name.pdf"
             fi
           }
-          fetch ti https://www.ti.com/lit/ds/symlink/pcf8574.pdf
-          fetch nxp https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf
-          fetch hanako-archive https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
-          fetch hanako https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
-          fetch handsontec https://www.handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
-
-          page_grep() {
-            f=$1; p=$2; pat=$3
-            echo "--- $f page $p"
-            if [ -f "$f.pdf" ]; then
-              pdftotext -layout -f "$p" -l "$p" "$f.pdf" - | grep -nE "$pat" || echo "(no match)"
-            fi
-          }
-          page_grep ti 1 'SCPS068|REVISED'
-          page_grep ti 3 'SCL|SDA|pullup|pull-up'
-          page_grep ti 4 'VCC|Supply voltage'
-          page_grep ti 5 'fscl|clock frequency'
-          page_grep ti 14 'Address|[0-9A-F]h'
-          page_grep ti 16 '0100000|address'
-          page_grep nxp 1 '100 kHz|2.5 V|Rev'
-          page_grep nxp 5 '20h|27h|Table 4|address'
-          page_grep nxp 6 '38h|3Fh|Table 5'
-          page_grep nxp 16 'VDD|supply voltage|Table 9'
-          page_grep nxp 17 'fSCL|SCL clock|Table 10'
-
-          for f in hanako-archive handsontec; do
-            if [ -f "$f.pdf" ]; then
-              echo "=== text of $f"
-              pdftotext -layout "$f.pdf" - || true
-              echo "=== images of $f"
-              pdfimages -list "$f.pdf" || true
-            fi
+          fetch nxp https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf \
+            -H 'Accept: application/pdf,text/html;q=0.9,*/*;q=0.8' -H 'Accept-Language: en-US,en;q=0.9' \
+            -H 'Referer: https://www.nxp.com/products/PCF8574_74A'
+          fetch nxp-archive https://web.archive.org/web/2026id_/https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf
+          for f in nxp nxp-archive; do
+            [ -f "$f.pdf" ] || continue
+            for p in 1 5 6 16 17 33; do
+              echo "--- $f page $p"
+              pdftotext -layout -f "$p" -l "$p" "$f.pdf" - | grep -nE '100 kHz|2\.5 V|Rev\. ?5|27 May 2013|Table (4|5|9|10)|[0-9A-F]h|VDD|fSCL|SCL clock' || echo "(no match)"
+            done
           done
 
-  hd44780:
+  ocr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Read hd44780 at tag 1.3.2
+      - name: Install poppler, tesseract and imagemagick
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr imagemagick
+      - name: Read the text in the schematics' images
         run: |
-          set -eu
-          git ls-remote https://github.com/duinoWitchery/hd44780 'refs/tags/1.3.2*'
-          base=https://raw.githubusercontent.com/duinoWitchery/hd44780/27fd9d3809a92e744eef60b13dfcf4096c91cbe8
-          for f in library.properties hd44780ioClass/hd44780_I2Cexp.h examples/ioClass/hd44780_I2Cexp/I2CexpDiag/I2CexpDiag.ino; do
-            curl -sSfL -o "raw-$(basename "$f")" "$base/$f"
-            echo "=== $f bytes $(stat -c %s "raw-$(basename "$f")") sha256 $(sha256sum "raw-$(basename "$f")" | cut -d' ' -f1)"
+          set -u
+          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          curl -sSfL -A "$ua" -o hanako.pdf https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
+          curl -sSfL -A "$ua" -o handsontec.pdf https://www.handsontec.com/dataspecs/module/I2C_1602_LCD.pdf
+          sha256sum hanako.pdf handsontec.pdf
+          mkdir -p img
+          pdfimages -j -f 1 -l 1 hanako.pdf img/hanako
+          pdfimages -j -f 6 -l 6 handsontec.pdf img/handsontec6
+          pdfimages -j -f 2 -l 2 handsontec.pdf img/handsontec2
+          ls -l img
+          for i in img/*; do
+            for r in 0 90 270; do
+              convert "$i" -rotate "$r" -colorspace Gray -resize 200% rot.png
+              echo "=== OCR $i rotated $r"
+              tesseract rot.png - --psm 11 2>/dev/null | grep -vE '^\s*$' || true
+            done
           done
-          echo "=== library.properties"
-          cat raw-library.properties
-          echo "=== hd44780_I2Cexp.h"
-          grep -nE 'define I2Cexp_BOARD_|LocateDevice|0x20|0x27|0x38|0x3[fF]|autocfg8574|rs = 0|Wire\.begin|setClock|blLevel|int ioinit|_addr = |AutoInst' raw-hd44780_I2Cexp.h
-          echo "=== I2CexpDiag.ino"
-          grep -niE 'pull' raw-I2CexpDiag.ino
-          echo "=== ci.yml"
-          grep -n 'hd44780' .github/workflows/ci.yml
-      - uses: arduino/setup-arduino-cli@v2
-        with:
-          version: 1.5.1
-      - name: Install hd44780 as CI does
-        run: |
-          set -eu
-          arduino-cli lib update-index
-          arduino-cli lib install hd44780@1.3.2
-          arduino-cli lib search hd44780 --format json | jq '.libraries[] | select(.name == "hd44780") | .releases["1.3.2"]' || true
-          ls -l ~/.arduino15/staging/libraries/ || true
-          sha256sum ~/.arduino15/staging/libraries/hd44780* || true
-          d=$(dirname "$(dirname "$(find ~/Arduino/libraries -name hd44780_I2Cexp.h | head -n 1)")")
-          echo "installed in $d"
-          grep -E '^version=' "$d/library.properties"
-          sha256sum "$d/library.properties" "$d/hd44780ioClass/hd44780_I2Cexp.h" "$d/examples/ioClass/hd44780_I2Cexp/I2CexpDiag/I2CexpDiag.ino"
-          cmp "$d/hd44780ioClass/hd44780_I2Cexp.h" raw-hd44780_I2Cexp.h && echo "hd44780_I2Cexp.h is the same as at commit 27fd9d3809a92e744eef60b13dfcf4096c91cbe8"
