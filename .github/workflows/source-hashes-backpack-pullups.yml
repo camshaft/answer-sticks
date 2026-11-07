@@ -1,0 +1,67 @@
+name: Source hashes, LCD backpack pull-ups (temporary)
+
+# Downloads schematics and guides of the PCF8574 LCD backpack, prints each file's size,
+# SHA-256 and text, for the line of docs/sources/README.md on the backpack's SDA and SCL
+# pull-ups. This branch never merges.
+on:
+  push:
+    branches: [sources-backpack-pullups-hash]
+
+permissions:
+  contents: read
+
+jobs:
+  schematics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install poppler and tesseract
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr
+      - name: Hash and read the files
+        run: |
+          set -u
+          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          fetch() {
+            name=$1; url=$2
+            for attempt in 1 2 3; do
+              echo "=== $name $url attempt $attempt"
+              rm -f headers.txt "$name.pdf"
+              if curl -sSfL -A "$ua" -D headers.txt -o "$name.pdf" -w 'effective: %{url_effective}\n' "$url"; then
+                grep -iE '^(HTTP|content-type|content-length|last-modified|etag|memento-datetime|x-archive-orig-last-modified|x-archive-orig-content-length):' headers.txt || true
+                echo "bytes: $(stat -c %s "$name.pdf")"
+                pdfinfo "$name.pdf" | grep -E '^(Title|Author|Producer|Creator|CreationDate|ModDate|Pages):' || true
+                echo "sha256: $(sha256sum "$name.pdf" | cut -d' ' -f1)"
+                return 0
+              fi
+              echo "download failed"
+              rm -f "$name.pdf"
+              sleep 20
+            done
+          }
+          fetch dfr0063v12 https://dfimg.dfrobot.com/enshop/image/data/DFR0063/DFR0063_v1.2_Schematic.pdf
+          fetch dfr0063wiki https://dfimg.dfrobot.com/wiki/18569/DFR0063_i2c-16x2-lcd-display-module_schematics_1.0.pdf
+          fetch dfr0063robotshop https://cdn.robotshop.com/media/D/Dfr/RB-Dfr-69/pdf/dfrobot-i2c-twi-lcd1602-module-schematics.pdf
+          fetch dfr0063web "https://media.digikey.com/pdf/Data%20Sheets/DFRobot%20PDFs/DFR0063_Web.pdf"
+          fetch sunfounder "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/8924/CN0295D%20%20%20I2C%20LCD1602%20Module.pdf"
+          fetch handsontec2004 https://www.handsontec.com/dataspecs/I2C_2004_LCD.pdf
+          fetch hvandeven "https://github.com/HvandeVen/PCF8574-Display/raw/master/I2C%20LCD%20Adapter%20Schematic.pdf"
+          fetch mikroarchive https://web.archive.org/web/20241102105358id_/https://www.mikrocontroller.net/attachment/521754/PCF8574_I2C_LCD_Cir_En.pdf
+          for f in dfr0063v12 dfr0063wiki dfr0063robotshop dfr0063web sunfounder handsontec2004 hvandeven mikroarchive; do
+            [ -f "$f.pdf" ] || continue
+            n=$(pdfinfo "$f.pdf" | awk '/^Pages:/ {print $2}')
+            echo "##### $f: $n pages; images:"
+            pdfimages -list "$f.pdf" | head -12 || true
+            if [ "$n" -le 2 ]; then
+              echo "##### $f text, whole"
+              pdftotext -layout "$f.pdf" - | sed -e '/^[[:space:]]*$/d' | head -300
+              echo "##### $f OCR at 600 dpi, lines with a resistor or a value"
+              pdftoppm -r 600 -png "$f.pdf" "ocr-$f"
+              for img in ocr-$f*.png; do
+                tesseract "$img" - --psm 11 2>/dev/null | grep -nE '[0-9]+ ?[kK]|[0-9][kK][0-9]|R[0-9]+|[0-9]{3}|ohm|SDA|SCL|VCC|VDD' | head -120 || true
+              done
+            else
+              for p in $(seq 1 "$n"); do
+                out=$(pdftotext -layout -f "$p" -l "$p" "$f.pdf" - | grep -niE 'pull|resist|4\.7|4k7|10 ?k|R[0-9]+ |schematic|SDA|SCL|3\.3|VCC|VDD' || true)
+                if [ -n "$out" ]; then echo "--- $f page $p"; echo "$out"; fi
+              done
+            fi
+          done
