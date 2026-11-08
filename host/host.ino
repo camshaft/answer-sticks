@@ -17,6 +17,11 @@
 // beacon. Each frame's slots count from the END of its beacon, so the next beacon starts
 // 26.2 ms after the END of the one before it.
 
+// The core's Arduino.h defines round(x) as a macro, which would expand the call of
+// HostLogic's round(). This sketch doesn't use the macro, so it takes the macro away before
+// the library's headers.
+#undef round
+
 #include <AnswerSticks.h>
 #include <arbitration.h>
 #include <host_logic.h>
