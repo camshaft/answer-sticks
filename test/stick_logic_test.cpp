@@ -231,6 +231,9 @@ int sleeps_after_5_missed_beacons() {
   }
   failures += check(!no_host.asleep() && sleeping(no_host.on_missed_beacon(4 * kFrameUs)),
                     "before its first beacon, the stick sleeps on the 5th frame without one");
+  failures += check(sleeping(no_host.on_beacon(beacon(1, Phase::kReady), 5 * kFrameUs)) &&
+                        !no_host.pressed(),
+                    "a ready beacon after that sleep doesn't wake the stick or send a PRESS");
   return failures;
 }
 
