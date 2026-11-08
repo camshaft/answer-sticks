@@ -1,6 +1,7 @@
 // Tests of the AnswerSticks library, built with the computer's own C++ compiler and run
 // without a board. The program prints each check and exits with 1 where any check fails.
-// Each other test file registers its suite as test_suites.h says, and main() runs them all.
+// A test file can register its suite as test_suites.h says, and main() runs every suite
+// registered.
 #include <AnswerSticks.h>
 
 #include <cstdio>
