@@ -1,13 +1,11 @@
-// Tests of the host's state machine, built with the computer's own C++ compiler and run
-// without a board. As in packets_test.cpp, the checks run from a static object's
-// constructor, before main, so that this file adds its cases without a change to the main
-// of answer_sticks_test.cpp: the constructor prints each check, and where any check fails
-// it exits with 1. Together the checks cover every transition of the state machine.
+// Tests of the host's state machine, registered as test_suites.h says, so that main() runs
+// them. Together the checks cover every transition of the state machine.
 #include <host_logic.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
+
+#include "test_suites.h"
 
 namespace {
 
@@ -209,29 +207,25 @@ void round_wraps() {
   check(host.cancel().round_ended && is_ready(host, 0), "the round after 255 is 0");
 }
 
-struct HostLogicTests {
-  HostLogicTests() {
-    starts_ready();
-    ready_ignores_the_inputs();
-    ready_to_deciding();
-    deciding_ignores_the_inputs();
-    deciding_to_answering();
-    countdown();
-    knob_seconds_at_the_choice();
-    answering_ignores_a_press_and_a_winner();
-    correct_ends_the_round();
-    wrong_ends_the_round();
-    cancel_ends_the_round();
-    timeout_ends_the_round();
-    clock_wraps();
-    round_wraps();
-    if (failures != 0) {
-      std::printf("FAIL: %d host state machine checks failed\n", failures);
-      std::exit(1);
-    }
-  }
-};
+int run() {
+  failures = 0;
+  starts_ready();
+  ready_ignores_the_inputs();
+  ready_to_deciding();
+  deciding_ignores_the_inputs();
+  deciding_to_answering();
+  countdown();
+  knob_seconds_at_the_choice();
+  answering_ignores_a_press_and_a_winner();
+  correct_ends_the_round();
+  wrong_ends_the_round();
+  cancel_ends_the_round();
+  timeout_ends_the_round();
+  clock_wraps();
+  round_wraps();
+  return failures;
+}
 
-HostLogicTests host_logic_tests;
+answer_sticks_test::AddSuite add_host_logic_suite("host state machine", run);
 
 }  // namespace
