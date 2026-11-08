@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install adafruit-nrfutil
-        run: pip install adafruit-nrfutil
+        run: pip install adafruit-nrfutil==0.5.3.post16
       - name: Install the Adafruit nRF52 core
         run: |
           arduino-cli core update-index
