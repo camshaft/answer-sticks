@@ -87,7 +87,6 @@ class Arbiter {
     const uint32_t time = press_time(beacon_end, press.stick, press.age_us);
     if (beacon_.phase == Phase::kReady) {
       beacon_.phase = Phase::kDeciding;
-      frames_ended_ = 0;
       best_stick_ = press.stick;
       best_time_ = time;
     } else if (before(time, best_time_) || (time == best_time_ && press.stick < best_stick_)) {
